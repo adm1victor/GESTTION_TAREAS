@@ -121,9 +121,7 @@ tr.group-header td {
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
 }
-.cal-head {
-  display: contents;
-}
+.cal-head { display: contents; }
 .cal-head div {
   text-align: center;
   font-weight: 700;
@@ -148,14 +146,33 @@ tr.group-header td {
   font-weight: 800;
 }
 
-/* Mobile */
+/* Mobile: filas apiladas una debajo de otra */
 @media (max-width: 768px) {
-  table, thead, tbody, th, td, tr { display: block; }
+  .table-wrap { overflow: visible; }
+  table { width: 100%; border-collapse: collapse; min-width: 0; }
   thead { display: none; }
-  tr { margin-bottom: 10px; border: 1px solid #334155; border-radius: 10px; background: #1e293b; padding: 8px; }
-  tr.group-header td { border-radius: 10px; }
-  td { border: none; padding: 6px 8px; display: flex; justify-content: space-between; align-items: center; }
-  td::before { content: attr(data-label); font-weight: 600; color: var(--muted); margin-right: 8px; }
+  tr { display: table-row; border: none; background: transparent; margin: 0; padding: 0; }
+  td {
+    display: block;
+    width: 100%;
+    border-bottom: 1px solid #334155;
+    padding: 8px;
+  }
+  td::before {
+    content: attr(data-label) ": ";
+    font-weight: 600;
+    color: var(--muted);
+    display: inline-block;
+    min-width: 120px;
+  }
+  tr.group-header td {
+    display: block;
+    background: var(--group);
+    border-radius: 0;
+    font-weight: 700;
+    border-bottom: 1px solid #334155;
+    padding: 10px 8px;
+  }
 }
 
 /* Impresión: imprime toda la página */
@@ -316,7 +333,7 @@ function renderList(filter=''){
   countInfo.textContent = `${list.length} tareas${groupByClient ? ' (agrupadas por cliente)' : ''}`;
 
   if (list.length===0){
-    tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--muted)">No hay tareas</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--muted)" data-label="">No hay tareas</td></tr>`;
     renderCalendar();
     return;
   }
@@ -331,6 +348,7 @@ function renderList(filter=''){
       trHead.className = 'group-header';
       const tdHead = document.createElement('td');
       tdHead.colSpan = 6;
+      tdHead.setAttribute('data-label','Cliente');
       tdHead.innerHTML = `👥 Cliente: <strong>${client}</strong> &nbsp; <span style="color:${getGroupColor(groups[client])}">(${groups[client].length})</span>`;
       trHead.appendChild(tdHead);
       tbody.appendChild(trHead);
@@ -406,10 +424,8 @@ function renderCalendar(){
   const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   calTitle.textContent=`${months[month]} ${year}`;
 
-  const headRow = document.createElement('div');
-  headRow.className='cal-head';
   ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(h=>{
-    const el=document.createElement('div'); el.textContent=h; calendarEl.appendChild(el);
+    const el=document.createElement('div'); el.textContent=h; el.className='cal-head-item'; calendarEl.appendChild(el);
   });
 
   const firstDay=new Date(year,month,1).getDay();
