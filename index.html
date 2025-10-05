@@ -146,33 +146,11 @@ tr.group-header td {
   font-weight: 800;
 }
 
-/* Mobile: filas apiladas una debajo de otra */
+/* Mobile: mantener la tabla como filas */
 @media (max-width: 768px) {
-  .table-wrap { overflow: visible; }
-  table { width: 100%; border-collapse: collapse; min-width: 0; }
-  thead { display: none; }
-  tr { display: table-row; border: none; background: transparent; margin: 0; padding: 0; }
-  td {
-    display: block;
-    width: 100%;
-    border-bottom: 1px solid #334155;
-    padding: 8px;
-  }
-  td::before {
-    content: attr(data-label) ": ";
-    font-weight: 600;
-    color: var(--muted);
-    display: inline-block;
-    min-width: 120px;
-  }
-  tr.group-header td {
-    display: block;
-    background: var(--group);
-    border-radius: 0;
-    font-weight: 700;
-    border-bottom: 1px solid #334155;
-    padding: 10px 8px;
-  }
+  .table-wrap { overflow: auto; } /* Permitir scroll horizontal en móviles */
+  table { min-width: 600px; } /* Reducir el ancho mínimo para mejor visualización en móviles */
+  th, td { padding: 8px 4px; font-size: 13px; } /* Reducir padding y tamaño de fuente para ahorrar espacio */
 }
 
 /* Impresión: imprime toda la página */
