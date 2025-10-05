@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Gesttion — Gestor de Tareas (Oscuro)</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+:root {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --primary: #3b82f6;
+  --secondary: #0ea5e9;
+  --danger: #ef4444;
+  --success: #10b981;
+  --highlight: rgba(239,68,68,0.25);
+  --group: #0b1222;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter','Segoe UI',Roboto,Arial;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.4;
+  min-height: 100vh;
+}
+
+.container { max-width: 1180px; margin: 16px auto; padding: 0 14px; }
+header { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; }
+
+.brand { display: flex; align-items: center; gap: 10px; }
+.logo {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: 16px;
+}
+h1 { font-size: 20px; margin: 0; font-weight: 700; }
+
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* Botones */
+button.btn-primary {
+  background: var(--primary);
+  border: 0; color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+button.btn-primary:hover { opacity: .9; }
+
+button.btn-plain {
+  background: transparent;
+  border: 1px solid var(--muted);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 500;
+}
+button.btn-plain:hover { background: rgba(255,255,255,0.05); }
+
+/* Inputs */
+input, select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--muted);
+  background: #0f172a;
+  color: var(--text);
+  font-size: 14px;
+}
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* Tabla */
+.table-wrap { overflow: auto; border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; min-width: 800px; }
+th, td { padding: 10px 8px; border-bottom: 1px solid #334155; vertical-align: middle; }
+th {
+  background: #1e293b;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  font-weight: 700;
+}
+td.editable { cursor: pointer; }
+
+tr.priority-alta-row { background-color: var(--highlight) !important; }
+
+tr.group-header td {
+  background: var(--group);
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: .3px;
+  border-bottom: 1px solid #334155;
+}
+
+/* Calendario simplificado */
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.cal-head {
+  display: contents;
+}
+.cal-head div {
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
+}
+.day {
+  text-align: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: #1e293b;
+  font-size: 13px;
+  min-height: 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+.day-number { font-weight: 700; }
+.day-count {
+  font-size: 11px;
+  color: var(--danger);
+  font-weight: 800;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  table, thead, tbody, th, td, tr { display: block; }
+  thead { display: none; }
+  tr { margin-bottom: 10px; border: 1px solid #334155; border-radius: 10px; background: #1e293b; padding: 8px; }
+  tr.group-header td { border-radius: 10px; }
+  td { border: none; padding: 6px 8px; display: flex; justify-content: space-between; align-items: center; }
+  td::before { content: attr(data-label); font-weight: 600; color: var(--muted); margin-right: 8px; }
+}
+
+/* Impresión: imprime toda la página */
+@media print {
+  body { background: #fff; }
+  .card { box-shadow: none; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="brand">
+      <div class="logo">G</div>
+      <h1>Gesttion — Tareas</h1>
+    </div>
+    <div class="controls">
+      <button id="btnExportCSV" class="btn-plain">📊 CSV</button>
+      <button id="btnExportXLS" class="btn-plain">📈 Excel</button>
+      <button id="btnGroupClient" class="btn-plain">👥 Agrupar por Cliente</button>
+      <button id="btnPrint" class="btn-plain">🖨️ Imprimir</button>
+      <button id="btnSharePDF" class="btn-plain">📤 Compartir PDF</button>
+      <button id="btnClear" class="btn-plain">Vaciar</button>
+    </div>
+  </header>
+
+  <!-- Formulario -->
+  <div class="card">
+    <form id="taskForm" class="grid" autocomplete="off" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end">
+      <div>
+        <label for="taskTitle">Tarea</label>
+        <input id="taskTitle" list="taskList" type="text" required>
+        <datalist id="taskList"></datalist>
+      </div>
+      <div>
+        <label for="client">Cliente</label>
+        <input id="client" list="clientList" type="text" required>
+        <datalist id="clientList"></datalist>
+      </div>
+      <div>
+        <label for="dueDate">Fecha límite</label>
+        <input id="dueDate" type="date" required>
+      </div>
+      <div>
+        <label for="priority">Prioridad</label>
+        <select id="priority" required>
+          <option value="">--</option>
+          <option>Alta</option>
+          <option>Media</option>
+          <option>Baja</option>
+        </select>
+      </div>
+      <div><button type="submit" class="btn-primary">Agregar</button></div>
+    </form>
+  </div>
+
+  <!-- Lista -->
+  <div class="card">
+    <div class="toolbar" style="display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap">
+      <input id="searchInput" placeholder="Buscar..." style="flex:1;max-width:420px">
+      <div id="countInfo" style="font-size:13px;color:var(--muted)">0 tareas</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Tarea</th><th>Cliente</th><th>Fecha límite</th><th>Prioridad</th><th>Estado</th><th>Acciones</th></tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Calendario -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div>
+        <button id="prevMonth" class="btn-plain">◀</button>
+        <button id="nextMonth" class="btn-plain">▶</button>
+      </div>
+      <div id="calTitle" style="font-weight:700"></div>
+    </div>
+    <div id="calendar" class="calendar"></div>
+  </div>
+</div>
+
+<script>
+const LS_KEY = 'gesttion_tasks_v7';
+let tasks = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+let calendarDate = new Date();
+let groupByClient = false;
+
+const taskForm=document.getElementById('taskForm');
+const taskTitle=document.getElementById('taskTitle');
+const clientInp=document.getElementById('client');
+const dueDate=document.getElementById('dueDate');
+const prioritySel=document.getElementById('priority');
+
+const tbody=document.getElementById('tbody');
+const searchInput=document.getElementById('searchInput');
+const countInfo=document.getElementById('countInfo');
+
+const taskDatalist=document.getElementById('taskList');
+const clientDatalist=document.getElementById('clientList');
+
+const calendarEl=document.getElementById('calendar');
+const calTitle=document.getElementById('calTitle');
+
+const pad2=n=>String(n).padStart(2,'0');
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function save(){localStorage.setItem(LS_KEY,JSON.stringify(tasks));}
+
+/* Datalists */
+function buildDatalists(){
+  const taskSet=[...new Set(tasks.map(t=>t.title).filter(Boolean))];
+  const clientSet=[...new Set(tasks.map(t=>t.client).filter(Boolean))];
+  taskDatalist.innerHTML=taskSet.map(v=>`<option value="${v}">`).join('');
+  clientDatalist.innerHTML=clientSet.map(v=>`<option value="${v}">`).join('');
+}
+
+/* Orden por defecto: fecha -> prioridad -> estado -> título */
+const priorityOrder = { 'Alta': 0, 'Media': 1, 'Baja': 2 };
+const stateOrder = { 'Pendiente': 0, 'En proceso': 1, 'Completada': 2 };
+
+function compareTasks(a,b){
+  const ad=a.dueDate||'', bd=b.dueDate||'';
+  if (ad && bd && ad !== bd) return ad < bd ? -1 : 1;
+  if (ad && !bd) return -1;
+  if (!ad && bd) return 1;
+
+  const ap = priorityOrder[a.priority] ?? 99;
+  const bp = priorityOrder[b.priority] ?? 99;
+  if (ap !== bp) return ap - bp;
+
+  const as = stateOrder[a.state || 'Pendiente'] ?? 99;
+  const bs = stateOrder[b.state || 'Pendiente'] ?? 99;
+  if (as !== bs) return as - bs;
+
+  return (a.title || '').localeCompare(b.title || '');
+}
+
+/* Render lista (agrupado o plano) */
+function renderList(filter=''){
+  buildDatalists();
+  tbody.innerHTML='';
+
+  let list = tasks.slice();
+  if (filter){
+    const f = filter.toLowerCase();
+    list = list.filter(t =>
+      (t.title||'').toLowerCase().includes(f) ||
+      (t.client||'').toLowerCase().includes(f) ||
+      (t.priority||'').toLowerCase().includes(f) ||
+      (t.state||'Pendiente').toLowerCase().includes(f)
+    );
+  }
+
+  list.sort(compareTasks);
+  countInfo.textContent = `${list.length} tareas${groupByClient ? ' (agrupadas por cliente)' : ''}`;
+
+  if (list.length===0){
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--muted)">No hay tareas</td></tr>`;
+    renderCalendar();
+    return;
+  }
+
+  if (!groupByClient){
+    list.forEach(task => appendTaskRow(task));
+  } else {
+    const groups = groupBy(list, t => (t.client || '— Sin cliente —').trim());
+    const clients = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
+    clients.forEach(client => {
+      const trHead = document.createElement('tr');
+      trHead.className = 'group-header';
+      const tdHead = document.createElement('td');
+      tdHead.colSpan = 6;
+      tdHead.innerHTML = `👥 Cliente: <strong>${client}</strong> &nbsp; <span style="color:${getGroupColor(groups[client])}">(${groups[client].length})</span>`;
+      trHead.appendChild(tdHead);
+      tbody.appendChild(trHead);
+
+      groups[client].forEach(task => appendTaskRow(task));
+    });
+  }
+
+  attachEditors();
+  renderCalendar();
+}
+
+function getGroupColor(arr){
+  return arr.some(t=>t.priority==='Alta') ? 'var(--danger)' : 'var(--muted)';
+}
+
+function groupBy(arr, keyFn){
+  return arr.reduce((acc, item)=>{
+    const key = keyFn(item);
+    acc[key] = acc[key] || [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+}
+
+function appendTaskRow(task){
+  const tr=document.createElement('tr');
+  if (task.priority==='Alta') tr.classList.add('priority-alta-row');
+  tr.innerHTML = `
+    <td class="editable" data-field="title" data-id="${task.id}" data-label="Tarea">${task.title || ''}</td>
+    <td class="editable" data-field="client" data-id="${task.id}" data-label="Cliente">${task.client || ''}</td>
+    <td class="editable" data-field="dueDate" data-id="${task.id}" data-label="Fecha límite">${task.dueDate || ''}</td>
+    <td class="editable" data-field="priority" data-id="${task.id}" data-label="Prioridad">${task.priority || ''}</td>
+    <td class="editable" data-field="state" data-id="${task.id}" data-label="Estado">${task.state || 'Pendiente'}</td>
+    <td data-label="Acciones"><button onclick="deleteTask('${task.id}')" class="btn-plain">🗑️</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+/* Editar celdas inline */
+function attachEditors(){
+  document.querySelectorAll('td.editable').forEach(cell=>{
+    cell.onclick=function(){
+      const id=this.dataset.id;
+      const field=this.dataset.field;
+      const task=tasks.find(t=>t.id===id);
+      if(!task) return;
+      const oldVal=task[field]||'';
+      let inp;
+      if(field==='priority'){
+        inp=document.createElement('select');
+        ['Alta','Media','Baja'].forEach(p=>{
+          const o=document.createElement('option');o.value=p;o.textContent=p;if(p===oldVal)o.selected=true;inp.appendChild(o);
+        });
+      } else if(field==='state'){
+        inp=document.createElement('select');
+        ['Pendiente','En proceso','Completada'].forEach(s=>{
+          const o=document.createElement('option');o.value=s;o.textContent=s;if(s===oldVal)o.selected=true;inp.appendChild(o);
+        });
+      } else if(field==='dueDate'){ inp=document.createElement('input');inp.type='date';inp.value=oldVal; }
+      else { inp=document.createElement('input');inp.type='text';inp.value=oldVal; }
+
+      this.innerHTML=''; this.appendChild(inp); inp.focus();
+      inp.onblur=()=>{ task[field]=inp.value; save(); renderList(searchInput.value); };
+    };
+  });
+}
+
+/* Calendario: solo días + contador por dueDate */
+function renderCalendar(){
+  calendarEl.innerHTML='';
+  const year=calendarDate.getFullYear(), month=calendarDate.getMonth();
+  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  calTitle.textContent=`${months[month]} ${year}`;
+
+  const headRow = document.createElement('div');
+  headRow.className='cal-head';
+  ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(h=>{
+    const el=document.createElement('div'); el.textContent=h; calendarEl.appendChild(el);
+  });
+
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+
+  for(let i=0;i<firstDay;i++){
+    const empty=document.createElement('div');
+    calendarEl.appendChild(empty);
+  }
+
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr=`${year}-${pad2(month+1)}-${pad2(d)}`;
+    const count = tasks.filter(t => t.dueDate === dateStr).length;
+    const cell=document.createElement('div'); cell.className='day';
+    const num=document.createElement('div'); num.className='day-number'; num.textContent=d;
+    cell.appendChild(num);
+    const cnt=document.createElement('div'); cnt.className='day-count'; cnt.textContent = count>0 ? count : '';
+    cell.appendChild(cnt);
+    calendarEl.appendChild(cell);
+  }
+}
+
+/* Funciones base */
+function deleteTask(id){ tasks=tasks.filter(t=>t.id!==id); save(); renderList(searchInput.value); }
+
+taskForm.addEventListener('submit',e=>{
+  e.preventDefault();
+  const newTask={
+    id: uid(),
+    title: taskTitle.value.trim(),
+    client: clientInp.value.trim(),
+    dueDate: dueDate.value,
+    priority: prioritySel.value,
+    state: 'Pendiente'
+  };
+  tasks.push(newTask); save(); taskForm.reset(); renderList(searchInput.value);
+});
+
+document.getElementById('btnClear').onclick=()=>{ if(confirm('Vaciar lista?')){ tasks=[]; save(); renderList(); } };
+searchInput.oninput=()=>renderList(searchInput.value);
+
+/* Export CSV / XLS */
+document.getElementById('btnExportCSV').onclick=()=>{
+  const rows=[['Tarea','Cliente','Fecha límite','Prioridad','Estado']];
+  tasks.forEach(t=>rows.push([t.title,t.client,t.dueDate,t.priority,t.state||'Pendiente']));
+  const csv=rows.map(r=>r.map(val=>`"${(val||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='tareas.csv'; a.click();
+};
+
+document.getElementById('btnExportXLS').onclick=()=>{
+  const datos=tasks.map(t=>({Tarea:t.title,Cliente:t.client,'Fecha límite':t.dueDate,Prioridad:t.priority,Estado:t.state||'Pendiente'}));
+  const ws=XLSX.utils.json_to_sheet(datos);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Tareas');
+  XLSX.writeFile(wb,'tareas.xlsx');
+};
+
+/* Agrupar por cliente (toggle) */
+document.getElementById('btnGroupClient').onclick=(e)=>{
+  groupByClient=!groupByClient;
+  e.target.textContent=groupByClient ? '👥 Ver sin agrupar' : '👥 Agrupar por Cliente';
+  renderList(searchInput.value);
+};
+
+/* Imprimir toda la página */
+document.getElementById('btnPrint').onclick=()=>{ window.print(); };
+
+/* Mes anterior / siguiente */
+document.getElementById('prevMonth').onclick=()=>{ calendarDate.setMonth(calendarDate.getMonth()-1); renderCalendar(); };
+document.getElementById('nextMonth').onclick=()=>{ calendarDate.setMonth(calendarDate.getMonth()+1); renderCalendar(); };
+
+/* Compartir PDF (Email / WhatsApp / Descargar) */
+document.getElementById('btnSharePDF').onclick=()=>{
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(16);
+  doc.text('Lista de Tareas', 14, 20);
+  doc.setFontSize(11);
+
+  const sorted = tasks.slice().sort(compareTasks);
+  let y = 30;
+  if (sorted.length === 0) {
+    doc.text('No hay tareas.', 14, y);
+  } else {
+    sorted.forEach((t, i) => {
+      const line = `${i + 1}. ${t.title || '—'} | Cliente: ${t.client || '—'} | Fecha: ${t.dueDate || '—'} | Prioridad: ${t.priority || '—'} | Estado: ${t.state || 'Pendiente'}`;
+      const lines = doc.splitTextToSize(line, 180);
+      lines.forEach(l => {
+        doc.text(l, 14, y);
+        y += 7;
+        if (y > 280) { doc.addPage(); y = 20; }
+      });
+    });
+  }
+
+  const pdfBlob = doc.output('blob');
+  const pdfUrl = URL.createObjectURL(pdfBlob);
+  const fileName = 'tareas.pdf';
+
+  const mailSubject = encodeURIComponent('Lista de tareas');
+  const mailBody = encodeURIComponent('Te comparto el PDF con las tareas:\n\n') + pdfUrl;
+  const whatsappText = encodeURIComponent('Te comparto el PDF con las tareas:\n\n') + pdfUrl;
+
+  const shareWindow = window.open('', '_blank');
+  const html = `
+    <html>
+      <head>
+        <title>Compartir PDF</title>
+        <meta charset="utf-8"/>
+        <style>
+          body { background:#0f172a; color:#f8fafc; font-family: Inter, Arial; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+          .box { background:#1e293b; padding:20px; border-radius:12px; width:100%; max-width:420px; text-align:center; }
+          .box h3 { margin:0 0 12px 0; }
+          a.btn { display:block; margin:10px 0; padding:10px 12px; border-radius:8px; text-decoration:none; font-weight:600; }
+          a.btn.mail { background:#3b82f6; color:#fff; }
+          a.btn.wa { background:#10b981; color:#0b1222; }
+          a.btn.dl { background:transparent; color:#f8fafc; border:1px solid #94a3b8; }
+        </style>
+      </head>
+      <body>
+        <div class="box">
+          <h3>Compartir PDF</h3>
+          <a class="btn mail" href="mailto:?subject=${mailSubject}&body=${mailBody}" target="_blank">📧 Compartir por Email</a>
+          <a class="btn wa" href="https://wa.me/?text=${whatsappText}" target="_blank">📱 Compartir por WhatsApp</a>
+          <a class="btn dl" href="${pdfUrl}" download="${fileName}">⬇️ Descargar PDF</a>
+        </div>
+      </body>
+    </html>
+  `;
+  shareWindow.document.write(html);
+  shareWindow.document.close();
+};
+
+/* Init */
+renderList();
+</script>
+</body>
+</html>
