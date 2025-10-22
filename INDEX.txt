@@ -1,547 +1,740 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Gesttion — Gestor de Tareas (Oscuro)</title>
-
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gesttion Gestor de Tareas Oscuro</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 <style>
 :root {
-  --bg: #0f172a;
-  --card: #1e293b;
-  --text: #f8fafc;
-  --muted: #94a3b8;
-  --primary: #3b82f6;
-  --secondary: #0ea5e9;
-  --danger: #ef4444;
-  --success: #10b981;
-  --highlight: rgba(239,68,68,0.25);
-  --group: #0b1222;
+    --bg: #0f172a;
+    --card: #1e293b;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --primary: #3b82f6;
+    --secondary: #0ea5e9;
+    --danger: #ef4444;
+    --success: #10b981;
+    --highlight: rgba(239,68,68,0.25);
+    --group: #0b1222;
+    --future-glow: 0 0 8px 3px #0ea5e933, 0 0 4px 1px #3b82f633;
+    --future-gradient: linear-gradient(90deg,#0ea5e9 40%,#3b82f6 100%);
+    --future-border: #0ea5e9;
 }
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'Inter','Segoe UI',Roboto,Arial;
-  background: var(--bg);
-  color: var(--text);
-  line-height: 1.4;
-  min-height: 100vh;
-}
-
+body { font-family: Inter,Segoe UI,Roboto,Arial; background: var(--bg); color: var(--text); line-height: 1.4; min-height: 100vh; margin: 0; }
 .container { max-width: 1180px; margin: 16px auto; padding: 0 14px; }
 header { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; }
-
 .brand { display: flex; align-items: center; gap: 10px; }
-.logo {
-  width: 40px; height: 40px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-weight: 800; font-size: 16px;
-}
+.logo { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 16px;}
 h1 { font-size: 20px; margin: 0; font-weight: 700; }
-
-.card {
-  background: var(--card);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 14px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-
-/* Botones */
-button.btn-primary {
-  background: var(--primary);
-  border: 0; color: #fff;
-  padding: 10px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-button.btn-primary:hover { opacity: .9; }
-
-button.btn-plain {
-  background: transparent;
-  border: 1px solid var(--muted);
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  color: var(--text);
-  font-weight: 500;
-}
-button.btn-plain:hover { background: rgba(255,255,255,0.05); }
-
-/* Inputs */
-input, select {
-  width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid var(--muted);
-  background: #0f172a;
-  color: var(--text);
-  font-size: 14px;
-}
-input:focus, select:focus {
-  outline: none;
-  border-color: var(--primary);
-}
-
-/* Tabla */
-.table-wrap { overflow: auto; border-radius: 8px; }
+.card { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);}
+button.btn-primary { background: var(--primary); border: 0; color: #fff; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s;}
+button.btn-primary:hover { opacity: .9;}
+button.btn-plain { background: var(--primary); color:#fff; border: 1px solid var(--muted); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 600;}
+button.btn-plain:hover { background: var(--secondary);}
+input, select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--muted); background: #0f172a; color: var(--text); font-size: 14px;}
+input:focus, select:focus { outline: none; border-color: var(--primary);}
+.table-wrap { overflow: auto; border-radius: 8px;}
 table { width: 100%; border-collapse: collapse; min-width: 800px; }
-th, td { padding: 10px 8px; border-bottom: 1px solid #334155; vertical-align: middle; }
-th {
-  background: #1e293b;
-  color: var(--muted);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: .6px;
-  font-weight: 700;
-}
+th, td { padding: 10px 8px; border-bottom: 1px solid #334155; vertical-align: middle;}
+th { background: #1e293b; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .6px; font-weight: 700;}
 td.editable { cursor: pointer; }
-
 tr.priority-alta-row { background-color: var(--highlight) !important; }
-
-tr.group-header td {
-  background: var(--group);
-  color: var(--text);
-  font-weight: 700;
-  letter-spacing: .3px;
-  border-bottom: 1px solid #334155;
-}
-
-/* Calendario simplificado */
-.calendar {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-}
+tr.group-header td { background: var(--group); color: var(--text); font-weight: 700; letter-spacing: .3px; border-bottom: 1px solid #334155;}
+.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;}
 .cal-head { display: contents; }
-.cal-head div {
-  text-align: center;
-  font-weight: 700;
-  color: var(--muted);
+.cal-head-item { text-align: center; font-weight: 700; color: var(--muted);}
+.day { text-align: center; padding: 8px; border-radius: 8px; background: #1e293b; font-size: 13px; min-height: 48px; display: flex; flex-direction: column; justify-content: center; gap: 4px;}
+.day-number { font-weight: 700;}
+.day-count { font-size: 11px; color: var(--danger); font-weight: 800;}
+.future-timer {
+    display: inline-block;
+    min-width: 52px;
+    font-family: "Orbitron", "Inter", "Arial", sans-serif;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    background: var(--future-gradient);
+    color: #fff;
+    border-radius: 12px;
+    padding: 3px 7px;
+    box-shadow: var(--future-glow);
+    border: 1.5px solid var(--future-border);
+    text-shadow: 0 0 6px #3b82f640;
+    transition: background 0.2s;
 }
-.day {
-  text-align: center;
-  padding: 8px;
-  border-radius: 8px;
-  background: #1e293b;
-  font-size: 13px;
-  min-height: 48px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
+.future-timer svg {margin-right:1px;vertical-align:-2px;}
+.future-alert-7days {
+    background: linear-gradient(90deg, #ef4444 60%, #ffde73 100%);
+    color: #130d07;
+    font-weight: 900;
+    border-radius: 12px;
+    padding: 2px 10px;
+    margin-top: 3px;
+    margin-bottom: 2px;
+    box-shadow: 0 4px 12px #ef444499;
+    text-shadow: 0 1px 3px #fff5, 0 0 10px #f4420;
+    border: none;
+    font-size: 11px;
 }
-.day-number { font-weight: 700; }
-.day-count {
-  font-size: 11px;
-  color: var(--danger);
-  font-weight: 800;
-}
-
-/* Mobile: mantener la tabla como filas */
+#groupShareModal .btn-plain {background: #3b82f6; color:#fff; border:none;font-size:14px;}
+#groupShareModal .btn-plain:hover{background: #0ea5e9;}
 @media (max-width: 768px) {
-  .table-wrap { overflow: auto; } /* Permitir scroll horizontal en móviles */
-  table { min-width: 600px; } /* Reducir el ancho mínimo para mejor visualización en móviles */
-  th, td { padding: 8px 4px; font-size: 13px; } /* Reducir padding y tamaño de fuente para ahorrar espacio */
+    .table-wrap { overflow-x: auto;}
+    table { min-width: 600px;}
+    th, td { padding: 8px 4px; font-size: 13px;}
+    .future-timer { font-size: 11px; padding: 2px 4px; min-width: 39px;}
+    .future-alert-7days { font-size: 10px; padding: 2px 4px;}
 }
-
-/* Impresión: imprime toda la página */
-@media print {
-  body { background: #fff; }
-  .card { box-shadow: none; }
-}
+@media print { body { background: #fff; } .card { box-shadow: none; } }
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="container">
-  <header>
-    <div class="brand">
-      <div class="logo">G</div>
-      <h1>Gesttion — Tareas</h1>
-    </div>
+<header>
+    <div class="brand"><div class="logo">G</div> <h1>Gesttion Tareas</h1></div>
     <div class="controls">
-      <button id="btnExportCSV" class="btn-plain">📊 CSV</button>
-      <button id="btnExportXLS" class="btn-plain">📈 Excel</button>
-      <button id="btnGroupClient" class="btn-plain">👥 Agrupar por Cliente</button>
-      <button id="btnPrint" class="btn-plain">🖨️ Imprimir</button>
-      <button id="btnSharePDF" class="btn-plain">📤 Compartir PDF</button>
-      <button id="btnClear" class="btn-plain">Vaciar</button>
+        <button id="btnExportCSV" class="btn-plain">CSV</button>
+        <button id="btnExportXLS" class="btn-plain">Excel</button>
+        <button id="btnGroupClient" class="btn-plain">Agrupar por Cliente</button>
+        <button id="btnPrint" class="btn-plain">Imprimir</button>
+        <button id="btnSharePDF" class="btn-plain">Compartir PDF</button>
+        <button id="btnShareByGroup" class="btn-plain">Compartir por Cliente/Estado</button>
+        <button id="btnClear" class="btn-plain">Vaciar</button>
     </div>
-  </header>
-
-  <!-- Formulario -->
-  <div class="card">
-    <form id="taskForm" class="grid" autocomplete="off" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end">
-      <div>
-        <label for="taskTitle">Tarea</label>
+</header>
+<div class="card">
+<form id="taskForm" class="grid" autocomplete="off" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end;">
+    <div><label for="taskTitle">Tarea</label>
         <input id="taskTitle" list="taskList" type="text" required>
         <datalist id="taskList"></datalist>
-      </div>
-      <div>
-        <label for="client">Cliente</label>
+    </div>
+    <div><label for="client">Cliente</label>
         <input id="client" list="clientList" type="text" required>
         <datalist id="clientList"></datalist>
-      </div>
-      <div>
-        <label for="dueDate">Fecha límite</label>
+    </div>
+    <div><label for="dueDate">Fecha límite</label>
         <input id="dueDate" type="date" required>
-      </div>
-      <div>
-        <label for="priority">Prioridad</label>
+    </div>
+    <div><label for="priority">Prioridad</label>
         <select id="priority" required>
-          <option value="">--</option>
-          <option>Alta</option>
-          <option>Media</option>
-          <option>Baja</option>
+            <option value="">--</option>
+            <option>Alta</option>
+            <option>Media</option>
+            <option>Baja</option>
         </select>
-      </div>
-      <div><button type="submit" class="btn-primary">Agregar</button></div>
-    </form>
-  </div>
-
-  <!-- Lista -->
-  <div class="card">
+    </div>
+    <div><label for="state">Estado</label>
+        <select id="state" required>
+            <option>Pendiente</option>
+            <option>En proceso</option>
+            <option>Completada</option>
+            <option>Presentado</option>
+            <option>Avalado hasta</option>
+        </select>
+    </div>
+    <div>
+        <button type="submit" class="btn-primary">Agregar</button>
+    </div>
+</form>
+</div>
+<div class="card">
     <div class="toolbar" style="display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap">
-      <input id="searchInput" placeholder="Buscar..." style="flex:1;max-width:420px">
-      <div id="countInfo" style="font-size:13px;color:var(--muted)">0 tareas</div>
+        <input id="searchInput" placeholder="Buscar..." style="flex:1;max-width:420px">
+        <div id="countInfo" style="font-size:13px;color:var(--muted);">0 tareas</div>
     </div>
     <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Tarea</th><th>Cliente</th><th>Fecha límite</th><th>Prioridad</th><th>Estado</th><th>Acciones</th></tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
+        <table>
+            <thead>
+                <tr>
+                <th>Tarea</th>
+                <th>Cliente</th>
+                <th>Fecha límite</th>
+                <th>Prioridad</th>
+                <th>Estado</th>
+                <th>Tiempo</th>
+                <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+        </table>
     </div>
-  </div>
-
-  <!-- Calendario -->
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div>
-        <button id="prevMonth" class="btn-plain">◀</button>
-        <button id="nextMonth" class="btn-plain">▶</button>
-      </div>
-      <div id="calTitle" style="font-weight:700"></div>
+</div>
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div>
+            <button id="prevMonth" class="btn-plain">&lt;</button>
+            <button id="nextMonth" class="btn-plain">&gt;</button>
+        </div>
+        <div id="calTitle" style="font-weight:700"></div>
     </div>
     <div id="calendar" class="calendar"></div>
-  </div>
 </div>
-
+</div>
+<audio id="alarmAudio" preload="auto">
+ <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
+</audio>
+<div id="presentedModal" style="display:none; position:fixed; z-index:99999; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,.5); align-items:center; justify-content:center;">
+    <div style="background:#fff; color:#222; padding:30px; border-radius:12px; box-shadow:0 8px 24px #0004; max-width:320px; text-align:center">
+        <h3 style="margin-top:0">¿La gestión fue aceptada?</h3>
+        <button id="btnYes" class="btn-plain" style="width:70px;">Sí</button>
+        <button id="btnNo" class="btn-plain" style="width:70px;">No</button>
+    </div>
+</div>
+<div id="groupShareModal" style="display:none; position:fixed;z-index:99999;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,.6);align-items:center;justify-content:center;">
+    <div style="background:#fff; color:#222; padding:28px 18px; border-radius:16px; box-shadow:0 8px 24px #0024; max-width:420px;width:95%;text-align:center;">
+        <h3 style="margin-top:0;margin-bottom:10px;">Compartir tareas</h3>
+        <div style="margin-bottom:8px;">
+            <select id="selClienteShare" style="width:70%;font-size:14px;padding:6px 6px;">
+                <option value="">Todos los clientes</option>
+            </select>
+            <select id="selEstadoShare" style="width:70%;font-size:14px;padding:6px 6px;">
+                <option value="">Todos los estados</option>
+                <option>Pendiente</option>
+                <option>En proceso</option>
+                <option>Completada</option>
+                <option>Presentado</option>
+                <option>Avalado hasta</option>
+            </select>
+        </div>
+        <textarea id="areaShareGroup" style="width:94%;height:70px;padding:8px;font-size:13px;resize:none;" readonly></textarea>
+        <div style="margin-top:10px;display:flex;gap:8px;justify-content:center;">
+            <button id="btnCopyShareGroup" class="btn-plain" style="width:80px;">Copiar</button>
+            <button id="btnMailShareGroup" class="btn-plain" style="width:80px;">Correo</button>
+            <button id="btnWhatsShareGroup" class="btn-plain" style="width:80px;">Whatsapp</button>
+            <button onclick="closeGroupShare()" class="btn-plain" style="width:80px;">Cerrar</button>
+        </div>
+    </div>
+</div>
 <script>
-const LS_KEY = 'gesttion_tasks_v7';
-let tasks = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+const LSKEY = "gesttion-tasks-v10";
+let tasks = JSON.parse(localStorage.getItem(LSKEY) || "[]");
 let calendarDate = new Date();
 let groupByClient = false;
-
-const taskForm=document.getElementById('taskForm');
-const taskTitle=document.getElementById('taskTitle');
-const clientInp=document.getElementById('client');
-const dueDate=document.getElementById('dueDate');
-const prioritySel=document.getElementById('priority');
-
-const tbody=document.getElementById('tbody');
-const searchInput=document.getElementById('searchInput');
-const countInfo=document.getElementById('countInfo');
-
-const taskDatalist=document.getElementById('taskList');
-const clientDatalist=document.getElementById('clientList');
-
-const calendarEl=document.getElementById('calendar');
-const calTitle=document.getElementById('calTitle');
-
-const pad2=n=>String(n).padStart(2,'0');
-const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-function save(){localStorage.setItem(LS_KEY,JSON.stringify(tasks));}
-
-/* Datalists */
-function buildDatalists(){
-  const taskSet=[...new Set(tasks.map(t=>t.title).filter(Boolean))];
-  const clientSet=[...new Set(tasks.map(t=>t.client).filter(Boolean))];
-  taskDatalist.innerHTML=taskSet.map(v=>`<option value="${v}">`).join('');
-  clientDatalist.innerHTML=clientSet.map(v=>`<option value="${v}">`).join('');
+const priorityOrder = ["Alta", "Media", "Baja"];
+const stateOrder = ["Pendiente", "En proceso", "Completada", "Presentado", "Avalado hasta"];
+const alarmOptions = [
+    {label:"24 hs", value:24},
+    {label:"36 hs", value:36},
+    {label:"48 hs", value:48}
+];
+let timerIntervalId = null;
+function startTimers() {
+    if (timerIntervalId) clearInterval(timerIntervalId);
+    timerIntervalId = setInterval(() => {
+        tasks.forEach(task => {
+            if (task.state === "Presentado" && task.nextAlarm) {
+                const ms = task.nextAlarm - Date.now();
+                const span = document.querySelector(`[data-task-id="${task.id}"][data-timer="presentado"]`);
+                if (span) span.textContent = "⏱️ " + formatRemainingTime(ms > 0 ? ms : 0);
+            }
+            if (task.state === "Avalado hasta" && task.dueDate) {
+                const days = getRemainingDays(task.dueDate);
+                const span = document.querySelector(`[data-task-id="${task.id}"][data-timer="avalado"]`);
+                if (span) span.innerHTML = futuristaDia(days);
+                if (days === 7) showAvaladoAlert(task.id);
+            }
+        });
+    }, 1000);
+}
+function getRemainingDays(dueDateStr) {
+    const now = new Date();
+    const dueParts = dueDateStr.split("-");
+    const due = new Date(dueParts[0], dueParts[1]-1, dueParts[2]);
+    const diffMs = due.setHours(0,0,0,0) - now.setHours(0,0,0,0);
+    const days = Math.ceil(diffMs / (1000*60*60*24));
+    return days;
+}
+function futuristaDia(days) {
+    let head = `<span class="future-timer"><svg width="14" height="14" style="vertical-align:-2px;margin-right:1px;" viewBox="0 0 24 24"><g><rect width="10" height="3" rx="1.5" x="7" y="2" fill="#20eaff"/><rect width="18" height="16" rx="4" x="3" y="6" fill="#4f95ff"/><text x="12" y="18" text-anchor="middle" font-size="7" font-family="Orbitron" fill="#fff">${days}</text></g></svg> ${days} días</span>`;
+    return head + ((days === 7) ? `<div class="future-alert-7days">⚡ En 7 días se denegará el acceso del recurso.</div>` : "");
+}
+function showAvaladoAlert(taskId) {
+    let shownKey = 'avalado-alert-shown-'+taskId;
+    if (!window[shownKey]) {
+        window[shownKey]=true;
+        setTimeout(()=>{
+            alert("⚡ En 7 días se denegará el acceso del recurso.");
+        },200);
+    }
+}
+function formatRemainingTime(ms) {
+    if (!ms || ms < 0) return "";
+    const h = Math.floor(ms/3600000);
+    const m = Math.floor((ms%3600000)/60000);
+    const s = Math.floor((ms%60000)/1000);
+    if (h > 0) return h + "h " + m + "m";
+    if (m > 0) return m + "m " + s + "s";
+    return s + "s";
 }
 
-/* Orden por defecto: fecha -> prioridad -> estado -> título */
-const priorityOrder = { 'Alta': 0, 'Media': 1, 'Baja': 2 };
-const stateOrder = { 'Pendiente': 0, 'En proceso': 1, 'Completada': 2 };
-
-function compareTasks(a,b){
-  const ad=a.dueDate||'', bd=b.dueDate||'';
-  if (ad && bd && ad !== bd) return ad < bd ? -1 : 1;
-  if (ad && !bd) return -1;
-  if (!ad && bd) return 1;
-
-  const ap = priorityOrder[a.priority] ?? 99;
-  const bp = priorityOrder[b.priority] ?? 99;
-  if (ap !== bp) return ap - bp;
-
-  const as = stateOrder[a.state || 'Pendiente'] ?? 99;
-  const bs = stateOrder[b.state || 'Pendiente'] ?? 99;
-  if (as !== bs) return as - bs;
-
-  return (a.title || '').localeCompare(b.title || '');
+function getTaskTimerString(task) {
+    if (task.state === "Presentado" && task.nextAlarm) {
+        const ms = task.nextAlarm - Date.now();
+        return `Tiempo restante: ${formatRemainingTime(ms > 0 ? ms : 0)}`;
+    }
+    if (task.state === "Avalado hasta" && task.dueDate) {
+        const days = getRemainingDays(task.dueDate);
+        return `Días restantes: ${days}`;
+    }
+    return ""; // No hay temporizador para otros estados
 }
 
-/* Render lista (agrupado o plano) */
-function renderList(filter=''){
-  buildDatalists();
-  tbody.innerHTML='';
-
-  let list = tasks.slice();
-  if (filter){
-    const f = filter.toLowerCase();
-    list = list.filter(t =>
-      (t.title||'').toLowerCase().includes(f) ||
-      (t.client||'').toLowerCase().includes(f) ||
-      (t.priority||'').toLowerCase().includes(f) ||
-      (t.state||'Pendiente').toLowerCase().includes(f)
-    );
-  }
-
-  list.sort(compareTasks);
-  countInfo.textContent = `${list.length} tareas${groupByClient ? ' (agrupadas por cliente)' : ''}`;
-
-  if (list.length===0){
-    tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--muted)" data-label="">No hay tareas</td></tr>`;
+function appendTaskRow(task) {
+    const tr = document.createElement("tr");
+    if (task.priority === "Alta") tr.classList.add("priority-alta-row");
+    if (task.state === "Completada") tr.style.background = "#10b98122";
+    let tiempoPresentado = "", tiempoAvalado = "";
+    if (task.state === "Presentado" && task.nextAlarm) {
+        const ms = task.nextAlarm - Date.now();
+        tiempoPresentado = `<span style="color:#ef4444; font-size:14px;" data-task-id="${task.id}" data-timer="presentado">⏱️ ${formatRemainingTime(ms)}</span>`;
+    }
+    if (task.state === "Avalado hasta" && task.dueDate) {
+        const days = getRemainingDays(task.dueDate);
+        tiempoAvalado = `<span data-task-id="${task.id}" data-timer="avalado">${futuristaDia(days)}</span>`;
+    }
+    tr.innerHTML =
+        `<td class="editable" data-field="title" data-id="${task.id}" data-label="Tarea">${task.title}</td>
+         <td class="editable" data-field="client" data-id="${task.id}" data-label="Cliente">${task.client}</td>
+         <td class="editable" data-field="dueDate" data-id="${task.id}" data-label="Fecha límite">${task.dueDate}</td>
+         <td class="editable priority-cell" data-field="priority" data-id="${task.id}" data-label="Prioridad">${task.priority}</td>
+         <td class="editable state-cell" data-field="state" data-id="${task.id}" data-label="Estado">${task.state}</td>
+         <td data-label="Tiempo">
+            ${tiempoPresentado}
+            ${tiempoAvalado}
+         </td>
+         <td data-label="Acciones">
+           <button onclick="copyTask('${task.id}')" class="btn-plain" title="Copiar tarea">📋</button>
+           <button onclick="deleteTask('${task.id}')" class="btn-plain">🗑️</button>
+         </td>`;
+    tbody.appendChild(tr);
+}
+function buildDatalists() {
+    const taskSet = [...new Set(tasks.map(t => t.title).filter(Boolean))];
+    const clientSet = [...new Set(tasks.map(t => t.client).filter(Boolean))];
+    document.getElementById("taskList").innerHTML = taskSet.map(v => `<option value="${v}">`).join("");
+    document.getElementById("clientList").innerHTML = clientSet.map(v => `<option value="${v}">`).join("");
+}
+function compareTasks(a,b) {
+    if (a.dueDate && b.dueDate && a.dueDate!=b.dueDate) return a.dueDate < b.dueDate ? -1 : 1;
+    const ap = priorityOrder.indexOf(a.priority ?? "Baja"), bp = priorityOrder.indexOf(b.priority ?? "Baja");
+    if (ap !== bp) return ap - bp;
+    const as = stateOrder.indexOf(a.state ?? "Pendiente"), bs = stateOrder.indexOf(b.state ?? "Pendiente");
+    if (as !== bs) return as - bs;
+    return a.title.localeCompare(b.title);
+}
+function groupBy(arr, keyFn) {
+    return arr.reduce((acc, item) => {
+        const key = keyFn(item);
+        acc[key] = acc[key] || [];
+        acc[key].push(item);
+        return acc;
+    }, {});
+}
+function getGroupColor(arr) {
+    return arr.some(t => t.priority === "Alta") ? "var(--danger)" : "var(--muted)";
+}
+function renderList(filter="") {
+    buildDatalists();
+    tbody.innerHTML = "";
+    let list = tasks.slice();
+    if (filter) {
+        const f = filter.toLowerCase();
+        list = list.filter(
+            t => t.title.toLowerCase().includes(f) ||
+            t.client.toLowerCase().includes(f) ||
+            t.priority.toLowerCase().includes(f) ||
+            t.state.toLowerCase().includes(f)
+        );
+    }
+    list.sort(compareTasks);
+    document.getElementById("countInfo").textContent = `${list.length} tareas${groupByClient ? " agrupadas por cliente" : ""}`;
+    if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--muted)" data-label="No hay tareas">No hay tareas</td></tr>`;
+        renderCalendar();
+        startTimers();
+        return;
+    }
+    if (!groupByClient) {
+        list.forEach(task => appendTaskRow(task));
+    } else {
+        const groups = groupBy(list, t => t.client || "Sin cliente");
+        const clients = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
+        clients.forEach(client => {
+            const trHead = document.createElement("tr");
+            trHead.className = "group-header";
+            const tdHead = document.createElement("td");
+            tdHead.colSpan = 7;
+            tdHead.setAttribute("data-label", "Cliente");
+            tdHead.innerHTML = `Cliente <strong>${client}</strong> &nbsp; <span style="color:${getGroupColor(groups[client])}">${groups[client].length}</span>`;
+            trHead.appendChild(tdHead);
+            tbody.appendChild(trHead);
+            groups[client].forEach(task => appendTaskRow(task));
+        });
+    }
+    attachEditors();
     renderCalendar();
-    return;
-  }
+    startTimers();
+}
 
-  if (!groupByClient){
-    list.forEach(task => appendTaskRow(task));
-  } else {
-    const groups = groupBy(list, t => (t.client || '— Sin cliente —').trim());
-    const clients = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
-    clients.forEach(client => {
-      const trHead = document.createElement('tr');
-      trHead.className = 'group-header';
-      const tdHead = document.createElement('td');
-      tdHead.colSpan = 6;
-      tdHead.setAttribute('data-label','Cliente');
-      tdHead.innerHTML = `👥 Cliente: <strong>${client}</strong> &nbsp; <span style="color:${getGroupColor(groups[client])}">(${groups[client].length})</span>`;
-      trHead.appendChild(tdHead);
-      tbody.appendChild(trHead);
+function copyTask(id) {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    const timerInfo = getTaskTimerString(task); // Obtener info del temporizador
+    const text = 
+    `Tarea: ${task.title}\nCliente: ${task.client}\nFecha límite: ${task.dueDate}\nPrioridad: ${task.priority}\nEstado: ${task.state}` +
+    (timerInfo ? `\n${timerInfo}` : ""); // Añadir si existe
+    navigator.clipboard.writeText(text).then(()=>alert("Tarea copiada")).catch(()=>alert("No se pudo copiar"));
+}
 
-      groups[client].forEach(task => appendTaskRow(task));
+document.getElementById("btnShareByGroup").onclick = function() {
+    openGroupShare();
+};
+function openGroupShare() {
+    const selCli = document.getElementById("selClienteShare");
+    const selEst = document.getElementById("selEstadoShare");
+    selCli.innerHTML = '<option value="">Todos los clientes</option>';
+    [...new Set(tasks.map(t => t.client).filter(Boolean))].forEach(cli => {
+        selCli.innerHTML += `<option value="${cli}">${cli}</option>`;
     });
-  }
-
-  attachEditors();
-  renderCalendar();
-}
-
-function getGroupColor(arr){
-  return arr.some(t=>t.priority==='Alta') ? 'var(--danger)' : 'var(--muted)';
-}
-
-function groupBy(arr, keyFn){
-  return arr.reduce((acc, item)=>{
-    const key = keyFn(item);
-    acc[key] = acc[key] || [];
-    acc[key].push(item);
-    return acc;
-  }, {});
-}
-
-function appendTaskRow(task){
-  const tr=document.createElement('tr');
-  if (task.priority==='Alta') tr.classList.add('priority-alta-row');
-  tr.innerHTML = `
-    <td class="editable" data-field="title" data-id="${task.id}" data-label="Tarea">${task.title || ''}</td>
-    <td class="editable" data-field="client" data-id="${task.id}" data-label="Cliente">${task.client || ''}</td>
-    <td class="editable" data-field="dueDate" data-id="${task.id}" data-label="Fecha límite">${task.dueDate || ''}</td>
-    <td class="editable" data-field="priority" data-id="${task.id}" data-label="Prioridad">${task.priority || ''}</td>
-    <td class="editable" data-field="state" data-id="${task.id}" data-label="Estado">${task.state || 'Pendiente'}</td>
-    <td data-label="Acciones"><button onclick="deleteTask('${task.id}')" class="btn-plain">🗑️</button></td>
-  `;
-  tbody.appendChild(tr);
-}
-
-/* Editar celdas inline */
-function attachEditors(){
-  document.querySelectorAll('td.editable').forEach(cell=>{
-    cell.onclick=function(){
-      const id=this.dataset.id;
-      const field=this.dataset.field;
-      const task=tasks.find(t=>t.id===id);
-      if(!task) return;
-      const oldVal=task[field]||'';
-      let inp;
-      if(field==='priority'){
-        inp=document.createElement('select');
-        ['Alta','Media','Baja'].forEach(p=>{
-          const o=document.createElement('option');o.value=p;o.textContent=p;if(p===oldVal)o.selected=true;inp.appendChild(o);
-        });
-      } else if(field==='state'){
-        inp=document.createElement('select');
-        ['Pendiente','En proceso','Completada'].forEach(s=>{
-          const o=document.createElement('option');o.value=s;o.textContent=s;if(s===oldVal)o.selected=true;inp.appendChild(o);
-        });
-      } else if(field==='dueDate'){ inp=document.createElement('input');inp.type='date';inp.value=oldVal; }
-      else { inp=document.createElement('input');inp.type='text';inp.value=oldVal; }
-
-      this.innerHTML=''; this.appendChild(inp); inp.focus();
-      inp.onblur=()=>{ task[field]=inp.value; save(); renderList(searchInput.value); };
+    selEst.value = "";
+    selCli.value = "";
+    document.getElementById("groupShareModal").style.display = "flex";
+    renderShareGroup();
+    selCli.onchange = renderShareGroup; selEst.onchange = renderShareGroup;
+    document.getElementById("btnCopyShareGroup").onclick = function(){
+        navigator.clipboard.writeText(document.getElementById("areaShareGroup").value).then(()=>alert("Tareas copiadas")).catch(()=>alert("No se pudo copiar grupo"));
     };
-  });
+    document.getElementById("btnMailShareGroup").onclick = function(){
+        const texto = encodeURIComponent(document.getElementById("areaShareGroup").value);
+        window.open("mailto:?subject=Lista de tareas filtradas&body="+texto,"_blank");
+    };
+    document.getElementById("btnWhatsShareGroup").onclick = function(){
+        const texto = encodeURIComponent(document.getElementById("areaShareGroup").value);
+        window.open("https://wa.me/?text="+texto,"_blank");
+    };
+}
+function closeGroupShare() {
+    document.getElementById("groupShareModal").style.display = "none";
 }
 
-/* Calendario: solo días + contador por dueDate */
-function renderCalendar(){
-  calendarEl.innerHTML='';
-  const year=calendarDate.getFullYear(), month=calendarDate.getMonth();
-  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  calTitle.textContent=`${months[month]} ${year}`;
-
-  ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(h=>{
-    const el=document.createElement('div'); el.textContent=h; el.className='cal-head-item'; calendarEl.appendChild(el);
-  });
-
-  const firstDay=new Date(year,month,1).getDay();
-  const daysInMonth=new Date(year,month+1,0).getDate();
-
-  for(let i=0;i<firstDay;i++){
-    const empty=document.createElement('div');
-    calendarEl.appendChild(empty);
-  }
-
-  for(let d=1; d<=daysInMonth; d++){
-    const dateStr=`${year}-${pad2(month+1)}-${pad2(d)}`;
-    const count = tasks.filter(t => t.dueDate === dateStr).length;
-    const cell=document.createElement('div'); cell.className='day';
-    const num=document.createElement('div'); num.className='day-number'; num.textContent=d;
-    cell.appendChild(num);
-    const cnt=document.createElement('div'); cnt.className='day-count'; cnt.textContent = count>0 ? count : '';
-    cell.appendChild(cnt);
-    calendarEl.appendChild(cell);
-  }
+function renderShareGroup() {
+    const cli = document.getElementById("selClienteShare").value;
+    const est = document.getElementById("selEstadoShare").value;
+    let f = t => ((!cli || t.client === cli) && (!est || t.state === est));
+    let filtered = tasks.filter(f);
+    let txt = filtered.length === 0 ? "No hay tareas" :
+        filtered.map((t,i)=> {
+            const timerInfo = getTaskTimerString(t); // Obtener info del temporizador
+            let line = `${i+1}) Tarea: ${t.title} | Cliente: ${t.client} | F. límite: ${t.dueDate} | Prioridad: ${t.priority} | Estado: ${t.state}`;
+            if (timerInfo) line += ` | ${timerInfo}`; // Añadir si existe
+            return line;
+        }).join("\n");
+    document.getElementById("areaShareGroup").value = txt;
 }
 
-/* Funciones base */
-function deleteTask(id){ tasks=tasks.filter(t=>t.id!==id); save(); renderList(searchInput.value); }
-
-taskForm.addEventListener('submit',e=>{
-  e.preventDefault();
-  const newTask={
-    id: uid(),
-    title: taskTitle.value.trim(),
-    client: clientInp.value.trim(),
-    dueDate: dueDate.value,
-    priority: prioritySel.value,
-    state: 'Pendiente'
-  };
-  tasks.push(newTask); save(); taskForm.reset(); renderList(searchInput.value);
-});
-
-document.getElementById('btnClear').onclick=()=>{ if(confirm('Vaciar lista?')){ tasks=[]; save(); renderList(); } };
-searchInput.oninput=()=>renderList(searchInput.value);
-
-/* Export CSV / XLS */
-document.getElementById('btnExportCSV').onclick=()=>{
-  const rows=[['Tarea','Cliente','Fecha límite','Prioridad','Estado']];
-  tasks.forEach(t=>rows.push([t.title,t.client,t.dueDate,t.priority,t.state||'Pendiente']));
-  const csv=rows.map(r=>r.map(val=>`"${(val||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download='tareas.csv'; a.click();
-};
-
-document.getElementById('btnExportXLS').onclick=()=>{
-  const datos=tasks.map(t=>({Tarea:t.title,Cliente:t.client,'Fecha límite':t.dueDate,Prioridad:t.priority,Estado:t.state||'Pendiente'}));
-  const ws=XLSX.utils.json_to_sheet(datos);
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Tareas');
-  XLSX.writeFile(wb,'tareas.xlsx');
-};
-
-/* Agrupar por cliente (toggle) */
-document.getElementById('btnGroupClient').onclick=(e)=>{
-  groupByClient=!groupByClient;
-  e.target.textContent=groupByClient ? '👥 Ver sin agrupar' : '👥 Agrupar por Cliente';
-  renderList(searchInput.value);
-};
-
-/* Imprimir toda la página */
-document.getElementById('btnPrint').onclick=()=>{ window.print(); };
-
-/* Mes anterior / siguiente */
-document.getElementById('prevMonth').onclick=()=>{ calendarDate.setMonth(calendarDate.getMonth()-1); renderCalendar(); };
-document.getElementById('nextMonth').onclick=()=>{ calendarDate.setMonth(calendarDate.getMonth()+1); renderCalendar(); };
-
-/* Compartir PDF (Email / WhatsApp / Descargar) */
-document.getElementById('btnSharePDF').onclick=()=>{
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  doc.setFontSize(16);
-  doc.text('Lista de Tareas', 14, 20);
-  doc.setFontSize(11);
-
-  const sorted = tasks.slice().sort(compareTasks);
-  let y = 30;
-  if (sorted.length === 0) {
-    doc.text('No hay tareas.', 14, y);
-  } else {
-    sorted.forEach((t, i) => {
-      const line = `${i + 1}. ${t.title || '—'} | Cliente: ${t.client || '—'} | Fecha: ${t.dueDate || '—'} | Prioridad: ${t.priority || '—'} | Estado: ${t.state || 'Pendiente'}`;
-      const lines = doc.splitTextToSize(line, 180);
-      lines.forEach(l => {
-        doc.text(l, 14, y);
-        y += 7;
-        if (y > 280) { doc.addPage(); y = 20; }
-      });
+function renderCalendar() {
+    const calendarEl = document.getElementById("calendar");
+    calendarEl.innerHTML = "";
+    const year = calendarDate.getFullYear(), month = calendarDate.getMonth();
+    const months = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    document.getElementById("calTitle").textContent = `${months[month]} ${year}`;
+    ["Dom","Lun","Mar","Mi","Jue","Vie","Sáb"].forEach(h => {
+        const el = document.createElement("div");
+        el.textContent = h; el.className = "cal-head-item";
+        calendarEl.appendChild(el);
     });
-  }
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    for(let i=0;i<firstDay;i++) calendarEl.appendChild(document.createElement("div"));
+    for(let d=1;d<=daysInMonth;d++) {
+        const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+        const count = tasks.filter(t => t.dueDate === dateStr).length;
+        const cell = document.createElement("div");
+        cell.className = "day";
+        const num = document.createElement("div");
+        num.className = "day-number";
+        num.textContent = d;
+        cell.appendChild(num);
+        const cnt = document.createElement("div");
+        cnt.className = "day-count";
+        cnt.textContent = count>0 ? count : "";
+        cell.appendChild(cnt);
+        calendarEl.appendChild(cell);
+    }
+}
+document.getElementById("prevMonth").onclick = function(){
+    calendarDate.setMonth(calendarDate.getMonth()-1); renderCalendar();
+}
+document.getElementById("nextMonth").onclick = function(){
+    calendarDate.setMonth(calendarDate.getMonth()+1); renderCalendar();
+}
 
-  const pdfBlob = doc.output('blob');
-  const pdfUrl = URL.createObjectURL(pdfBlob);
-  const fileName = 'tareas.pdf';
+/**
+ * --- INICIO DE MEJORA ---
+ * Función `attachEditors` modificada para quitar `ontouchstart`
+ * Esto previene cambios accidentales al hacer scroll en móviles.
+ */
+function attachEditors() {
+    document.querySelectorAll("td.editable.priority-cell").forEach(cell => {
+        cell.onclick = function () {
+            const id = cell.dataset.id;
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+            let idx = priorityOrder.indexOf(task.priority);
+            idx = (idx + 1) % priorityOrder.length;
+            task.priority = priorityOrder[idx];
+            save();
+            renderList(searchInput.value);
+        };
+        // Se eliminó: cell.ontouchstart = cell.onclick;
+    });
+    document.querySelectorAll("td.editable.state-cell").forEach(cell => {
+        cell.onclick = function () {
+            const id = cell.dataset.id;
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+            let prevState = task.state;
+            let idx = stateOrder.indexOf(task.state);
+            idx = (idx + 1) % stateOrder.length;
+            task.state = stateOrder[idx];
+            save();
+            renderList(searchInput.value);
+            if (task.state === "Presentado" && !task.nextAlarm) activarAvisoPresentado(task);
+            else if (prevState === "Presentado" && task.state !== "Presentado" && task.nextAlarm) {
+                task.nextAlarm = null;
+                task.alarmInterval = null;
+                save();
+            }
+        };
+        // Se eliminó: cell.ontouchstart = cell.onclick;
+    });
+    document.querySelectorAll("td.editable:not(.priority-cell):not(.state-cell)").forEach(cell => {
+        cell.onclick = function () {
+            const id = cell.dataset.id;
+            const field = cell.dataset.field;
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+            let nuevo = prompt(`Editar ${field}:`, task[field]);
+            if (nuevo !== null && nuevo.trim() !== "") {
+                task[field] = nuevo;
+                save();
+                renderList(searchInput.value);
+            }
+        }
+    });
+}
+/**
+ * --- FIN DE MEJORA ---
+ */
 
-  const mailSubject = encodeURIComponent('Lista de tareas');
-  const mailBody = encodeURIComponent('Te comparto el PDF con las tareas:\n\n') + pdfUrl;
-  const whatsappText = encodeURIComponent('Te comparto el PDF con las tareas:\n\n') + pdfUrl;
-
-  const shareWindow = window.open('', '_blank');
-  const html = `
-    <html>
-      <head>
-        <title>Compartir PDF</title>
-        <meta charset="utf-8"/>
-        <style>
-          body { background:#0f172a; color:#f8fafc; font-family: Inter, Arial; display:flex; align-items:center; justify-content:center; min-height:100vh; }
-          .box { background:#1e293b; padding:20px; border-radius:12px; width:100%; max-width:420px; text-align:center; }
-          .box h3 { margin:0 0 12px 0; }
-          a.btn { display:block; margin:10px 0; padding:10px 12px; border-radius:8px; text-decoration:none; font-weight:600; }
-          a.btn.mail { background:#3b82f6; color:#fff; }
-          a.btn.wa { background:#10b981; color:#0b1222; }
-          a.btn.dl { background:transparent; color:#f8fafc; border:1px solid #94a3b8; }
-        </style>
-      </head>
-      <body>
-        <div class="box">
-          <h3>Compartir PDF</h3>
-          <a class="btn mail" href="mailto:?subject=${mailSubject}&body=${mailBody}" target="_blank">📧 Compartir por Email</a>
-          <a class="btn wa" href="https://wa.me/?text=${whatsappText}" target="_blank">📱 Compartir por WhatsApp</a>
-          <a class="btn dl" href="${pdfUrl}" download="${fileName}">⬇️ Descargar PDF</a>
+function activarAvisoPresentado(task) {
+    if (!task.alarmInterval) {
+        mostrarDialogoIntervalo(task, () => setProgrammedAlarm(task, true));
+    } else {
+        setProgrammedAlarm(task, false);
+    }
+}
+function setProgrammedAlarm(task, isFirst) {
+    const interval = task.alarmInterval || 24;
+    const ms = 1000 * 60 * 60 * interval;
+    const dateNow = Date.now();
+    task.nextAlarm = dateNow + ms;
+    save();
+    if (isFirst) alert(`Alarma programada para dentro de ${interval} hs`);
+    programarAlarmaTask(task);
+}
+function programarAlarmaTask(task) {
+    if (task.state !== "Presentado") return;
+    const ms = Math.max(500, task.nextAlarm - Date.now());
+    setTimeout(() => {
+        if (task.state === "Presentado") alarmaYDialogoAceptacion(task);
+    }, ms);
+}
+function mostrarDialogoIntervalo(task, cb) {
+    let modal = document.createElement("div");
+    modal.style.position = "fixed";
+    modal.style.zIndex = 99999;
+    modal.style.left = "0"; modal.style.top = "0";
+    modal.style.width = "100vw"; modal.style.height = "100vh";
+    modal.style.background = "rgba(0,0,0,.5)";
+    modal.style.display = "flex"; modal.style.alignItems = "center";
+    modal.style.justifyContent = "center";
+    modal.innerHTML = `
+        <div style="background:#fff; color:#222; padding:30px; border-radius:12px; box-shadow:0 8px 24px #0004; max-width:340px; text-align:center">
+             <h3>¿En cuántas horas debe repetirse la alarma?</h3>
+             ${alarmOptions.map(opt=>`<button style="margin: 8px; padding: 10px 18px;" class="btn-plain" data-val="${opt.value}">${opt.label}</button>`).join("")}
         </div>
-      </body>
-    </html>
-  `;
-  shareWindow.document.write(html);
-  shareWindow.document.close();
+     `;
+    document.body.appendChild(modal);
+    modal.querySelectorAll("button").forEach(btn => {
+        btn.onclick = function(){
+            task.alarmInterval = Number(btn.dataset.val);
+            save();
+            modal.remove();
+            cb();
+        }
+    });
+}
+function reproducirAlarma() {
+    let audio = document.getElementById("alarmAudio");
+    audio && audio.play();
+}
+function alarmaYDialogoAceptacion(task) {
+    reproducirAlarma();
+    mostrarDialogoAceptacion(task);
+}
+function mostrarDialogoAceptacion(task) {
+    let modal = document.getElementById("presentedModal");
+    modal.style.display = "flex";
+    modal.querySelector("#btnYes").onclick = function () {
+        task.state = "Completada";
+        task.nextAlarm = null;
+        save();
+        renderList(searchInput.value);
+        modal.style.display = "none";
+    };
+    modal.querySelector("#btnNo").onclick = function () {
+        modal.style.display = "none";
+        setProgrammedAlarm(task, false);
+    };
+}
+function programarTodasLasAlarmas() {
+    tasks.forEach(task => {
+        if (task.state === "Presentado" && task.nextAlarm) programarAlarmaTask(task);
+    });
+}
+function save() { localStorage.setItem(LSKEY, JSON.stringify(tasks)); }
+function load() { tasks = JSON.parse(localStorage.getItem(LSKEY)||"[]"); }
+function deleteTask(id) {
+    if (!confirm("¿Eliminar esta tarea?")) return;
+    tasks = tasks.filter(t => t.id !== id);
+    save();
+    renderList(searchInput.value);
+}
+const taskForm = document.getElementById("taskForm");
+const taskTitle = document.getElementById("taskTitle");
+const clientInp = document.getElementById("client");
+const dueDateInp = document.getElementById("dueDate");
+const prioritySel = document.getElementById("priority");
+const stateSel = document.getElementById("state");
+const tbody = document.getElementById("tbody");
+const searchInput = document.getElementById("searchInput");
+taskForm.onsubmit = function(e){
+    e.preventDefault();
+    const newTask = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+        title: taskTitle.value.trim(),
+        client: clientInp.value.trim(),
+        dueDate: dueDateInp.value,
+        priority: prioritySel.value,
+        state: stateSel.value
+    };
+    tasks.push(newTask);
+    save();
+    renderList(searchInput.value);
+    taskForm.reset();
+    if (newTask.state === "Presentado") activarAvisoPresentado(newTask);
+};
+searchInput.oninput = function(){ renderList(this.value); }
+document.getElementById("btnClear").onclick = function(){
+    if (confirm("Vaciar lista?")) { tasks = []; save(); renderList(""); }
+};
+document.getElementById("btnGroupClient").onclick = function(e){
+    groupByClient = !groupByClient;
+    e.target.textContent = groupByClient ? "Ver sin agrupar" : "Agrupar por Cliente";
+    renderList(searchInput.value);
+};
+document.getElementById("btnPrint").onclick = function(){ window.print(); };
+
+document.getElementById("btnExportCSV").onclick = function(){
+    const rows = [["Tarea","Cliente","Fecha límite","Prioridad","Estado", "Tiempo"]]; // Cabecera añadida
+    tasks.forEach(t => rows.push([
+        t.title,
+        t.client,
+        t.dueDate,
+        t.priority,
+        t.state,
+        getTaskTimerString(t) // Dato añadido
+    ]));
+    const csv = rows.map(r=>r.map(val=>val?.toString().replace(/,/g,"")).join(",")).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+    a.download = "tareas.csv"; a.click();
 };
 
-/* Init */
-renderList();
+document.getElementById("btnExportXLS").onclick = function(){
+    const datos = tasks.map(t=>({
+        "Tarea":t.title, "Cliente":t.client, "Fecha límite":t.dueDate,
+        "Prioridad":t.priority, "Estado":t.state,
+        "Tiempo": getTaskTimerString(t) // Dato añadido
+    }));
+    const ws = XLSX.utils.json_to_sheet(datos);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Tareas");
+    XLSX.writeFile(wb, "tareas.xlsx");
+};
+
+document.getElementById("btnSharePDF").onclick = function(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Lista de Tareas", 14, 20);
+    doc.setFontSize(11);
+    const sorted = tasks.slice().sort(compareTasks);
+    let y = 30;
+    if (sorted.length === 0) doc.text("No hay tareas.", 14, y);
+    else sorted.forEach((t,i) => {
+        const timerInfo = getTaskTimerString(t); // Obtener info del temporizador
+        let line = `${i+1}. ${t.title}  Cliente: ${t.client}  Fecha: ${t.dueDate}  Prioridad: ${t.priority}  Estado: ${t.state}`;
+        if (timerInfo) line += `  (${timerInfo})`; // Añadir si existe
+
+        const lines = doc.splitTextToSize(line, 180);
+        lines.forEach(l => { doc.text(l, 14, y); y+=7; });
+        if (y > 280) { doc.addPage(); y=20; }
+    });
+    const pdfBlob = doc.output("blob");
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    const fileName = "tareas.pdf";
+    const mailSubject = encodeURIComponent("Lista de tareas");
+    const mailBody = encodeURIComponent("Te comparto el PDF con las tareas:\n" + pdfUrl);
+    const whatsappText = encodeURIComponent("Te comparto el PDF con las tareas: " + pdfUrl);
+    const shareWindow = window.open("", "_blank");
+    const html = `
+    <head><title>Compartir PDF</title><meta charset="utf-8">
+    <style>
+        body {background:#0f172a;color:#f8fafc;font-family:Inter,Arial;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+        .box {background:#1e293b;padding:20px;border-radius:12px;width:100%;max-width:420px;text-align:center;}
+        .box h3 {margin:0 0 12px 0;}
+        a.btn {display:block;margin:10px 0;padding:10px 12px;border-radius:8px;text-decoration:none;font-weight:600;}
+        a.btn.mail {background:#3b82f6;color:#fff;}
+        a.btn.wa {background:#10b981;color:#0b1222;}
+        a.btn.dl {background:transparent;color:#f8fafc;border:1px solid #94a3b8}
+    </style>
+    </head>
+    <body>
+    <div class="box">
+        <h3>Compartir PDF</h3>
+        <a class="btn mail" href="mailto:?subject=${mailSubject}&body=${mailBody}" target="_blank">Compartir por Email</a>
+        <a class="btn wa" href="https://wa.me/?text=${whatsappText}" target="_blank">Compartir por WhatsApp</a>
+        <a class="btn dl" href="${pdfUrl}" download="${fileName}">Descargar PDF</a>
+    </div>
+    </body>`;
+    shareWindow.document.write(html);
+    shareWindow.document.close();
+};
+
+window.onload = () => {
+    renderList();
+    programarTodasLasAlarmas();
+};
+function programarTodasLasAlarmas() {
+    tasks.forEach(task => {
+        if (task.state === "Presentado" && task.nextAlarm) programarAlarmaTask(task);
+    });
+}
 </script>
 </body>
 </html>
